@@ -140,43 +140,86 @@ apps/docs ──┘
 
 ---
 
-## ۴) آزمایشگاه کش — دستورها
+## ۴) آزمایشگاه کش — نتایج واقعی این ریپو
 
-همه‌ی بیلدها با خروجی متنی اجرا شدند تا عبارت‌های `FULL TURBO` و `Cached` دیده شوند:
+دستور (خروجی متنی تا `FULL TURBO` دیده شود):
 
 ```sh
 npx turbo run build --ui=stream
 ```
 
-لاگ کامل هر مرحله در پوشه‌ی [`lab-outputs/`](./lab-outputs) ذخیره شده است.
+لاگ کامل هر مرحله: [`lab-outputs/`](./lab-outputs).
 
-### مرحله ۱ — بیلد اول (سرد، بدون کش)
+### مرحله ۱ — بیلد اول (سرد)
 
-همه‌چیز از صفر کامپایل شد. زمان تقریبی **ده‌ها ثانیه**.
+هر دو اپ `cache miss` شدند و Next.js از صفر بیلد شد.
 
-### مرحله ۲ — همان دستور، بدون هیچ تغییری
+```
+web:build: cache miss, executing 289f5fb852fb3192
+docs:build: cache miss, executing a8e8a82efb155918
+...
+ Tasks:    2 successful, 2 total
+Cached:    0 cached, 2 total
+  Time:    7.329s
+```
 
-توربو هش ورودی را با کش مقایسه می‌کند، هیچ فایلی عوض نشده، پس **هر دو اپ از کش** برمی‌گردند. زمان به **کسری از ثانیه** می‌رسد و در خروجی `>>> FULL TURBO` دیده می‌شود.
+لاگ: [`lab-outputs/01-first-build.txt`](./lab-outputs/01-first-build.txt)
 
-`FULL TURBO` یعنی ۱۰۰٪ تسک‌ها از کش آمده‌اند.
+### مرحله ۲ — همان دستور، بدون تغییر
 
-### مرحله ۳ — فقط `apps/web` عوض شد
+توربو هش ورودی را با کش مقایسه کرد؛ هیچ فایلی عوض نشده بود.
 
-یک متن روی صفحه‌ی وب اضافه شد. توربو فهمید `docs` ورودی یکسانی دارد → **Cached: 1 cached, 2 total** (فقط `web` دوباره بیلد شد).
+```
+web:build: cache hit, replaying logs 289f5fb852fb3192
+docs:build: cache hit, replaying logs a8e8a82efb155918
+...
+ Tasks:    2 successful, 2 total
+Cached:    2 cached, 2 total
+  Time:    13ms >>> FULL TURBO
+```
 
-### مرحله ۴ — کامپوننت مشترک `packages/ui/src/button.tsx` عوض شد
+**۷٫۳ ثانیه → ۱۳ میلی‌ثانیه.** `FULL TURBO` یعنی ۱۰۰٪ تسک‌ها از کش آمده‌اند. لاگ‌های Next.js که می‌بینید **replay** هستند، نه بیلد دوباره.
 
-چون **هر دو اپ** `@repo/ui` را import می‌کنند، هش هر دو عوض می‌شود → **Cached: 0 cached, 2 total** (کش هر دو باطل).
+لاگ: [`lab-outputs/02-second-build-full-turbo.txt`](./lab-outputs/02-second-build-full-turbo.txt)
+
+### مرحله ۳ — فقط `apps/web/app/page.tsx`
+
+یک خط آموزشی فقط به اپ web اضافه شد. `docs` دست‌نخورده ماند.
+
+```
+web:build: cache miss, executing 9f61ca3f114b40ad
+docs:build: cache hit, replaying logs a8e8a82efb155918
+...
+Cached:    1 cached, 2 total
+  Time:    1.494s
+```
+
+لاگ: [`lab-outputs/03-web-only-change.txt`](./lab-outputs/03-web-only-change.txt)
+
+### مرحله ۴ — `packages/ui/src/button.tsx`
+
+متن دکمه به `{children} · shared UI` تغییر کرد. چون **هر دو اپ** `@repo/ui/button` را import می‌کنند، کش هر دو باطل شد.
+
+```
+docs:build: cache miss, executing 6564f9dd4f5697dc
+web:build: cache miss, executing 4599f3764b7edf12
+...
+Cached:    0 cached, 2 total
+  Time:    1.886s
+```
+
+لاگ: [`lab-outputs/04-shared-ui-change.txt`](./lab-outputs/04-shared-ui-change.txt)
 
 ---
 
 ## ۵) جدول خلاصه (بر اساس گراف وابستگی)
 
-| چه فایلی عوض شد | کدام اپ‌ها دوباره بیلد شدند | چرا |
-| --- | --- | --- |
-| هیچ‌کدام (بیلد دوم) | هیچ‌کدام — هر دو Cached | ورودی‌ها با هش قبلی یکی است → `FULL TURBO` |
-| `apps/web/app/page.tsx` | فقط `web` (`docs` از کش) | تغییر محلی است؛ `docs` به آن فایل وابسته نیست |
-| `packages/ui/src/button.tsx` | هم `web` هم `docs` | هر دو `import { Button } from "@repo/ui/button"` دارند؛ تغییر پکیج مشترک کش هر دو را باطل می‌کند |
+| چه فایلی عوض شد | کدام اپ‌ها دوباره بیلد شدند | خلاصه‌ی توربو | چرا |
+| --- | --- | --- | --- |
+| *(بیلد اول، کش خالی)* | `web` و `docs` | `0 cached, 2 total` — ۷٫۳s | هنوز هیچ خروجی‌ای در `.turbo` نبود |
+| هیچ‌کدام (بیلد دوم) | هیچ‌کدام | `2 cached, 2 total` — ۱۳ms `FULL TURBO` | ورودی‌ها با هش قبلی یکی است |
+| `apps/web/app/page.tsx` | فقط `web` | `1 cached, 2 total` — ۱٫۵s | تغییر محلی است؛ `docs` به آن فایل وابسته نیست |
+| `packages/ui/src/button.tsx` | `web` و `docs` | `0 cached, 2 total` — ۱٫۹s | هر دو `import { Button } from "@repo/ui/button"` دارند |
 
 این همان فرق عملی Monorepo + Turborepo با دو ریپوی جداست: یک تغییر در UI مشترک **خودکار** به مصرف‌کننده‌ها منتشر می‌شود، و بیلد فقط برای همان‌هایی که واقعاً لازم است تکرار می‌شود.
 

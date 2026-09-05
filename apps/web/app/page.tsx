@@ -36,6 +36,8 @@ export default function Home() {
             Get started by editing <code>apps/web/app/page.tsx</code>
           </li>
           <li>Save and see your changes instantly.</li>
+          {/* Cache-lab: this comment + line exist only in apps/web */}
+          <li>Monorepo lab: this line lives only in the web app.</li>
         </ol>
 
         <div className={styles.ctas}>

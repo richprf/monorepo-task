@@ -1,0 +1,75 @@
+• turbo 2.10.12
+
+   • Packages in scope: @repo/eslint-config, @repo/typescript-config, @repo/ui, docs, web
+   • Running build in 5 packages
+   • Remote caching disabled
+
+web:build: cache hit, replaying logs 289f5fb852fb3192
+web:build: 
+web:build: > web@0.1.0 build
+web:build: > next build
+web:build: 
+web:build: ▲ Next.js 16.3.4 (Turbopack)
+web:build: ✓ Running next.config.js took 12ms
+web:build: Attention: Next.js now collects completely anonymous telemetry regarding usage.
+web:build: This information is used to shape Next.js' roadmap and prioritize features.
+web:build: You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+web:build: https://nextjs.org/telemetry
+web:build: 
+web:build: 
+web:build:   Creating an optimized production build ...
+web:build: ✓ Compiled successfully in 5.2s
+web:build:   Running TypeScript ...
+web:build:   Finished TypeScript in 496ms ...
+web:build:   Collecting page data using 3 workers ...
+web:build:   Generating static pages using 3 workers (0/4) ...
+web:build:   Generating static pages using 3 workers (1/4) 
+web:build:   Generating static pages using 3 workers (2/4) 
+web:build:   Generating static pages using 3 workers (3/4) 
+web:build: ✓ Generating static pages using 3 workers (4/4) in 142ms
+web:build:   Finalizing page optimization ...
+web:build: 
+web:build: Route (app)
+web:build: ┌ ○ /
+web:build: └ ○ /_not-found
+web:build: 
+web:build: 
+web:build: ○  (Static)  prerendered as static content
+web:build: 
+docs:build: cache hit, replaying logs a8e8a82efb155918
+docs:build: 
+docs:build: > docs@0.1.0 build
+docs:build: > next build
+docs:build: 
+docs:build: ▲ Next.js 16.3.4 (Turbopack)
+docs:build: ✓ Running next.config.js took 12ms
+docs:build: Attention: Next.js now collects completely anonymous telemetry regarding usage.
+docs:build: This information is used to shape Next.js' roadmap and prioritize features.
+docs:build: You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+docs:build: https://nextjs.org/telemetry
+docs:build: 
+docs:build: 
+docs:build:   Creating an optimized production build ...
+docs:build: ✓ Compiled successfully in 5.2s
+docs:build:   Running TypeScript ...
+docs:build:   Finished TypeScript in 518ms ...
+docs:build:   Collecting page data using 3 workers ...
+docs:build:   Generating static pages using 3 workers (0/4) ...
+docs:build:   Generating static pages using 3 workers (1/4) 
+docs:build:   Generating static pages using 3 workers (2/4) 
+docs:build:   Generating static pages using 3 workers (3/4) 
+docs:build: ✓ Generating static pages using 3 workers (4/4) in 129ms
+docs:build:   Finalizing page optimization ...
+docs:build: 
+docs:build: Route (app)
+docs:build: ┌ ○ /
+docs:build: └ ○ /_not-found
+docs:build: 
+docs:build: 
+docs:build: ○  (Static)  prerendered as static content
+docs:build: 
+
+ Tasks:    2 successful, 2 total
+Cached:    2 cached, 2 total
+  Time:    13ms >>> FULL TURBO
+
