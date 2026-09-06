@@ -2,7 +2,7 @@ import { IsIn, IsNotEmpty, IsString, IsUUID } from 'class-validator';
 import {
   NOTIFICATION_TYPES,
   type NotificationType,
-} from './notification.types.js';
+} from '../notification.types.js';
 
 export class CreateNotificationDto {
   @IsString()
