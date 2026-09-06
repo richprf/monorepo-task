@@ -1,41 +1,19 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import {
-  isNotificationType,
-  type Notification,
-  type NotificationType,
-} from './notification.types.js';
+import { CreateNotificationDto } from './dto/create-notification.dto.js';
+import type { Notification } from './notification.types.js';
 
 @Injectable()
 export class NotificationsService {
   private readonly notifications: Notification[] = [];
 
-  create(input: {
-    userId: string;
-    message: string;
-    type: string;
-  }): Notification {
-    const userId = input.userId?.trim();
-    const message = input.message?.trim();
-    const type = input.type?.trim();
-
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    if (!message) {
-      throw new BadRequestException('message is required');
-    }
-    if (!type || !isNotificationType(type)) {
-      throw new BadRequestException(
-        'type must be one of: info, success, warning, error',
-      );
-    }
-
+  create(input: CreateNotificationDto): Notification {
     const notification: Notification = {
       id: randomUUID(),
-      userId,
-      message,
-      type: type as NotificationType,
+      userId: input.userId.trim(),
+      message: input.message.trim(),
+      type: input.type,
+      read: false,
       createdAt: new Date().toISOString(),
     };
 
@@ -45,5 +23,14 @@ export class NotificationsService {
 
   findByUser(userId: string): Notification[] {
     return this.notifications.filter((item) => item.userId === userId);
+  }
+
+  markAsRead(id: string): Notification {
+    const notification = this.notifications.find((item) => item.id === id);
+    if (!notification) {
+      throw new NotFoundException(`notification ${id} not found`);
+    }
+    notification.read = true;
+    return notification;
   }
 }

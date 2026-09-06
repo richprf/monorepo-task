@@ -26,9 +26,14 @@ npm run dev
 
 باز کن: [http://localhost:3000](http://localhost:3000)
 
+## مرحله ۲ — خوانده‌شده / نخونده
+
+هر اعلان فیلد `read` دارد (پیش‌فرض `false`). ورودی POST با DTO و `class-validator` چک می‌شود.
+
 | متد | مسیر NestJS | کار |
 | --- | --- | --- |
-| `POST` | `http://localhost:3001/notifications` | `{ userId, message, type }` |
-| `GET` | `http://localhost:3001/notifications/:userId` | لیست اعلان‌های همان کاربر |
+| `POST` | `/notifications` | `{ userId, message, type }` — اعلان نخونده |
+| `GET` | `/notifications/:userId` | لیست اعلان‌های همان کاربر |
+| `PATCH` | `/notifications/:id/read` | همان اعلان را خوانده‌شده می‌کند |
 
-`type`: `info` | `success` | `warning` | `error`
+روی فرانت: زنگوله با عدد قرمز = تعداد نخونده. کلیک روی یک اعلان → `PATCH`.

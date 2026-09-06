@@ -7,9 +7,6 @@ export type Notification = {
   userId: string;
   message: string;
   type: NotificationType;
+  read: boolean;
   createdAt: string;
 };
-
-export function isNotificationType(value: string): value is NotificationType {
-  return (NOTIFICATION_TYPES as readonly string[]).includes(value);
-}

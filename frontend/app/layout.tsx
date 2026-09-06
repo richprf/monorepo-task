@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "سیستم اعلان — مرحله ۱",
-  description: "فرانت‌اند Next.js که به API NestJS با polling وصل می‌شود",
+  title: "سیستم اعلان — مرحله ۲",
+  description: "اعلان‌های خوانده‌شده و نخونده با badge روی NestJS",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

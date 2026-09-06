@@ -14,6 +14,7 @@ type Notification = {
   userId: string;
   message: string;
   type: NotificationType;
+  read: boolean;
   createdAt: string;
 };
 
@@ -46,12 +47,42 @@ function formatTime(iso: string) {
   });
 }
 
+function BellBadge({ unread }: { unread: number }) {
+  return (
+    <div className="relative inline-flex" aria-label={`${unread} اعلان نخونده`}>
+      <span className="flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-800 shadow-sm">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0a3 3 0 1 1-6 0m6 0H9"
+          />
+        </svg>
+      </span>
+      {unread > 0 ? (
+        <span className="absolute -top-1 -left-1 min-w-5 rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-[11px] font-bold leading-none text-white">
+          {unread > 99 ? "99+" : unread}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export function NotificationsPanel() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastPolledAt, setLastPolledAt] = useState<string | null>(null);
   const [pollCount, setPollCount] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const unreadCount = notifications.filter((item) => !item.read).length;
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -109,24 +140,41 @@ export function NotificationsPanel() {
     }
   }
 
+  async function markAsRead(id: string, alreadyRead: boolean) {
+    if (alreadyRead) return;
+    setNotifications((current) =>
+      current.map((item) => (item.id === id ? { ...item, read: true } : item)),
+    );
+    try {
+      const response = await fetch(`${API_BASE}/notifications/${id}/read`, {
+        method: "PATCH",
+      });
+      if (!response.ok) {
+        throw new Error(`PATCH failed: ${response.status}`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "علامت‌گذاری ناموفق بود");
+      await fetchNotifications();
+    }
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-10">
-      <header className="space-y-2">
-        <p className="text-sm font-medium text-violet-700">
-          مرحله ۱ — NestJS + Next.js
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          سیستم اعلان ساده
-        </h1>
-        <p className="text-sm leading-7 text-zinc-600">
-          فرانت‌اند Next.js است؛ API روی NestJS در{" "}
-          <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">
-            {API_BASE}
-          </code>{" "}
-          اجرا می‌شود. اعلان‌ها در آرایهٔ in-memory بک‌اند ذخیره می‌شوند و صفحه
-          هر <strong>{POLL_MS / 1000} ثانیه</strong> با GET می‌پرسد «چیز جدیدی
-          هست؟» (Polling).
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-violet-700">
+            مرحله ۲ — خوانده‌شده / نخونده
+          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            سیستم اعلان ساده
+          </h1>
+          <p className="text-sm leading-7 text-zinc-600">
+            هر اعلان فیلد <code className="rounded bg-zinc-100 px-1">read</code>{" "}
+            دارد. عدد قرمز روی زنگوله تعداد نخونده‌هاست. روی یک اعلان کلیک کن تا
+            خوانده شود.
+          </p>
+        </div>
+        <BellBadge unread={unreadCount} />
       </header>
 
       <section className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
@@ -149,7 +197,7 @@ export function NotificationsPanel() {
         <p className="text-xs text-zinc-500">
           آخرین GET:{" "}
           {lastPolledAt ? formatTime(lastPolledAt) : "هنوز انجام نشده"} · تعداد
-          polling: {pollCount}
+          polling: {pollCount} · نخونده: {unreadCount}
         </p>
         {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       </section>
@@ -160,30 +208,49 @@ export function NotificationsPanel() {
         </h2>
         {notifications.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-sm text-zinc-500">
-            هنوز اعلانی نیست. دکمه را بزن یا تا ۳ ثانیه صبر کن تا لیست از NestJS
-            آپدیت شود.
+            هنوز اعلانی نیست. دکمه را بزن؛ اعلان جدید به‌صورت نخونده می‌آید.
           </p>
         ) : (
           <ul className="space-y-2">
             {notifications.map((item) => (
-              <li
-                key={item.id}
-                className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
-              >
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TYPE_CLASS[item.type]}`}
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => void markAsRead(item.id, item.read)}
+                  className={`w-full rounded-2xl border p-4 text-right shadow-sm transition ${
+                    item.read
+                      ? "border-zinc-200 bg-white text-zinc-600"
+                      : "cursor-pointer border-violet-200 bg-violet-50 hover:bg-violet-100"
+                  }`}
+                >
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TYPE_CLASS[item.type]}`}
+                      >
+                        {TYPE_LABEL[item.type]}
+                      </span>
+                      {!item.read ? (
+                        <span className="text-xs font-medium text-violet-700">
+                          نخونده
+                        </span>
+                      ) : (
+                        <span className="text-xs text-zinc-400">خوانده‌شده</span>
+                      )}
+                    </div>
+                    <time
+                      className="text-xs text-zinc-400"
+                      dateTime={item.createdAt}
+                    >
+                      {formatTime(item.createdAt)}
+                    </time>
+                  </div>
+                  <p
+                    className={`text-sm leading-6 ${item.read ? "font-normal" : "font-medium text-zinc-900"}`}
                   >
-                    {TYPE_LABEL[item.type]}
-                  </span>
-                  <time
-                    className="text-xs text-zinc-400"
-                    dateTime={item.createdAt}
-                  >
-                    {formatTime(item.createdAt)}
-                  </time>
-                </div>
-                <p className="text-sm leading-6 text-zinc-800">{item.message}</p>
+                    {item.message}
+                  </p>
+                </button>
               </li>
             ))}
           </ul>
