@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { io, type Socket } from "socket.io-client";
 
 const DEMO_USER_ID = "demo-user";
-const POLL_MS = 3000;
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3001";
 
@@ -17,6 +17,8 @@ type Notification = {
   read: boolean;
   createdAt: string;
 };
+
+type SocketStatus = "connecting" | "connected" | "disconnected";
 
 const SAMPLE_MESSAGES: { type: NotificationType; message: string }[] = [
   { type: "info", message: "گزارش روزانه آماده است." },
@@ -75,10 +77,20 @@ function BellBadge({ unread }: { unread: number }) {
   );
 }
 
+function prependUnique(
+  list: Notification[],
+  incoming: Notification,
+): Notification[] {
+  if (list.some((item) => item.id === incoming.id)) {
+    return list;
+  }
+  return [incoming, ...list];
+}
+
 export function NotificationsPanel() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [lastPolledAt, setLastPolledAt] = useState<string | null>(null);
-  const [pollCount, setPollCount] = useState(0);
+  const [socketStatus, setSocketStatus] = useState<SocketStatus>("connecting");
+  const [pushCount, setPushCount] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,8 +106,6 @@ export function NotificationsPanel() {
       }
       const data = (await response.json()) as Notification[];
       setNotifications(data);
-      setLastPolledAt(new Date().toISOString());
-      setPollCount((count) => count + 1);
       setError(null);
     } catch (err) {
       setError(
@@ -108,10 +118,30 @@ export function NotificationsPanel() {
 
   useEffect(() => {
     void fetchNotifications();
-    const timer = window.setInterval(() => {
-      void fetchNotifications();
-    }, POLL_MS);
-    return () => window.clearInterval(timer);
+
+    const socket: Socket = io(API_BASE, {
+      transports: ["websocket"],
+    });
+
+    socket.on("connect", () => {
+      setSocketStatus("connected");
+      socket.emit("join", { userId: DEMO_USER_ID });
+    });
+    socket.on("disconnect", () => {
+      setSocketStatus("disconnected");
+    });
+    socket.on("connect_error", () => {
+      setSocketStatus("disconnected");
+    });
+    socket.on("notification", (incoming: Notification) => {
+      setNotifications((current) => prependUnique(current, incoming));
+      setPushCount((count) => count + 1);
+    });
+
+    return () => {
+      socket.removeAllListeners();
+      socket.disconnect();
+    };
   }, [fetchNotifications]);
 
   async function sendTestNotification() {
@@ -132,7 +162,7 @@ export function NotificationsPanel() {
       if (!response.ok) {
         throw new Error(`POST failed: ${response.status}`);
       }
-      await fetchNotifications();
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "ارسال ناموفق بود");
     } finally {
@@ -158,20 +188,26 @@ export function NotificationsPanel() {
     }
   }
 
+  const statusLabel =
+    socketStatus === "connected"
+      ? "WebSocket وصل است"
+      : socketStatus === "connecting"
+        ? "در حال اتصال WebSocket…"
+        : "WebSocket قطع است";
+
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-10">
       <header className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <p className="text-sm font-medium text-violet-700">
-            مرحله ۲ — خوانده‌شده / نخونده
+            مرحله ۳ — Real-time با WebSocket
           </p>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
             سیستم اعلان ساده
           </h1>
           <p className="text-sm leading-7 text-zinc-600">
-            هر اعلان فیلد <code className="rounded bg-zinc-100 px-1">read</code>{" "}
-            دارد. عدد قرمز روی زنگوله تعداد نخونده‌هاست. روی یک اعلان کلیک کن تا
-            خوانده شود.
+            Polling حذف شد. یک GET اول لیست را می‌آورد؛ بعد از آن NestJS از طریق
+            Gateway هر اعلان جدید را فوری Push می‌کند.
           </p>
         </div>
         <BellBadge unread={unreadCount} />
@@ -195,9 +231,15 @@ export function NotificationsPanel() {
           </div>
         </div>
         <p className="text-xs text-zinc-500">
-          آخرین GET:{" "}
-          {lastPolledAt ? formatTime(lastPolledAt) : "هنوز انجام نشده"} · تعداد
-          polling: {pollCount} · نخونده: {unreadCount}
+          <span
+            className={
+              socketStatus === "connected" ? "text-emerald-700" : "text-amber-700"
+            }
+          >
+            {statusLabel}
+          </span>
+          {" · "}
+          push دریافتی: {pushCount} · نخونده: {unreadCount}
         </p>
         {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       </section>
@@ -208,7 +250,8 @@ export function NotificationsPanel() {
         </h2>
         {notifications.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-sm text-zinc-500">
-            هنوز اعلانی نیست. دکمه را بزن؛ اعلان جدید به‌صورت نخونده می‌آید.
+            هنوز اعلانی نیست. دکمه را بزن؛ باید بدون انتظار ۳ ثانیه‌ای از
+            WebSocket برسد.
           </p>
         ) : (
           <ul className="space-y-2">

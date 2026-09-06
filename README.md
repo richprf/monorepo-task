@@ -37,3 +37,14 @@ npm run dev
 | `PATCH` | `/notifications/:id/read` | همان اعلان را خوانده‌شده می‌کند |
 
 روی فرانت: زنگوله با عدد قرمز = تعداد نخونده. کلیک روی یک اعلان → `PATCH`.
+
+## مرحله ۳ — WebSocket به‌جای Polling
+
+`NotificationsGateway` با Socket.IO روی همان پورت NestJS (`3001`) گوش می‌دهد. کلاینت یک بار `join` می‌فرستد و وارد اتاق `user:{userId}` می‌شود. بعد از هر `POST`، سرور همان اعلان را با رویداد `notification` Push می‌کند.
+
+فرانت دیگر هر ۳ ثانیه GET نمی‌زند؛ فقط یک GET اولیه برای لیست فعلی.
+
+```sh
+cd backend && npm install && npm run start:dev
+cd frontend && npm install && npm run dev
+```
