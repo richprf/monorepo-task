@@ -1,50 +1,27 @@
-# سیستم اعلان — NestJS + Next.js
+# سیستم اعلان Real-time — NestJS + Next.js
 
-دو پروژهٔ جدا (بدون مونوریپو): بک‌اند NestJS و فرانت‌اند Next.js.
+دو پروژهٔ جدا: بک‌اند NestJS روی پورت **3001** و فرانت‌اند Next.js روی پورت **3000**. بدون Redis و بدون Queue؛ همه چیز in-memory است.
 
-## مرحله ۱ — In-memory + Polling
+## دو حافظهٔ جدا روی سرور
 
-اعلان‌ها در آرایهٔ حافظهٔ NestJS ذخیره می‌شوند. Next.js هر ۳ ثانیه لیست را GET می‌کند.
+1. **آرایهٔ اعلان‌ها** — محتوا + `read`
+2. **Map آنلاین‌ها** — `userId → socket.id` (چه کسی الان WebSocket باز دارد)
 
-### اجرا
+وقتی `POST /notifications` می‌آید، سرویس اول Map را می‌پرسد. اگر کاربر آنلاین باشد فقط به **همان یک نفر** رویداد `newNotification` می‌فرستد. اگر آفلاین باشد فقط ذخیره می‌کند و در کنسول می‌نویسد «کاربر آفلاین است».
 
-ترمینال ۱ — بک‌اند (پورت ۳۰۰۱):
-
-```sh
-cd backend
-npm install
-npm run start:dev
-```
-
-ترمینال ۲ — فرانت‌اند (پورت ۳۰۰۰):
+## اجرا
 
 ```sh
-cd frontend
-npm install
-npm run dev
+cd backend && npm install && npm run start:dev   # :3001
+cd frontend && npm install && npm run dev        # :3000
 ```
 
 باز کن: [http://localhost:3000](http://localhost:3000)
 
-## مرحله ۲ — خوانده‌شده / نخونده
+اتصال فرانت: `io(API_URL, { query: { userId } })`. در کنسول Nest باید ببینی: `کاربر آنلاین شد`.
 
-هر اعلان فیلد `read` دارد (پیش‌فرض `false`). ورودی POST با DTO و `class-validator` چک می‌شود.
-
-| متد | مسیر NestJS | کار |
+| متد | مسیر | کار |
 | --- | --- | --- |
-| `POST` | `/notifications` | `{ userId, message, type }` — اعلان نخونده |
-| `GET` | `/notifications/:userId` | لیست اعلان‌های همان کاربر |
-| `PATCH` | `/notifications/:id/read` | همان اعلان را خوانده‌شده می‌کند |
-
-روی فرانت: زنگوله با عدد قرمز = تعداد نخونده. کلیک روی یک اعلان → `PATCH`.
-
-## مرحله ۳ — WebSocket به‌جای Polling
-
-`NotificationsGateway` با Socket.IO روی همان پورت NestJS (`3001`) گوش می‌دهد. کلاینت یک بار `join` می‌فرستد و وارد اتاق `user:{userId}` می‌شود. بعد از هر `POST`، سرور همان اعلان را با رویداد `notification` Push می‌کند.
-
-فرانت دیگر هر ۳ ثانیه GET نمی‌زند؛ فقط یک GET اولیه برای لیست فعلی.
-
-```sh
-cd backend && npm install && npm run start:dev
-cd frontend && npm install && npm run dev
-```
+| `POST` | `/notifications` | `{ userId, message }` |
+| `GET` | `/notifications/:userId` | لیست اعلان‌های قبلی |
+| `PATCH` | `/notifications/:id/read` | خوانده‌شده |

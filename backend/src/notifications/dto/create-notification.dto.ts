@@ -1,8 +1,4 @@
-import { IsIn, IsNotEmpty, IsString, IsUUID } from 'class-validator';
-import {
-  NOTIFICATION_TYPES,
-  type NotificationType,
-} from '../notification.types.js';
+import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
 
 export class CreateNotificationDto {
   @IsString()
@@ -12,9 +8,6 @@ export class CreateNotificationDto {
   @IsString()
   @IsNotEmpty()
   message: string;
-
-  @IsIn(NOTIFICATION_TYPES)
-  type: NotificationType;
 }
 
 export class NotificationIdParamDto {

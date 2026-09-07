@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "سیستم اعلان — مرحله ۳",
-  description: "اعلان لحظه‌ای با NestJS Gateway و socket.io",
+  title: "سیستم اعلان Real-time",
+  description: "NestJS Gateway با Map آنلاین‌ها و Next.js با socket.io-client",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

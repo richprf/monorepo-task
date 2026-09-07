@@ -3,21 +3,15 @@ import {
   CreateNotificationDto,
   NotificationIdParamDto,
 } from './dto/create-notification.dto.js';
-import { NotificationsGateway } from './notifications.gateway.js';
 import { NotificationsService } from './notifications.service.js';
 
 @Controller('notifications')
 export class NotificationsController {
-  constructor(
-    private readonly notificationsService: NotificationsService,
-    private readonly notificationsGateway: NotificationsGateway,
-  ) {}
+  constructor(private readonly notificationsService: NotificationsService) {}
 
   @Post()
   create(@Body() body: CreateNotificationDto) {
-    const notification = this.notificationsService.create(body);
-    this.notificationsGateway.pushToUser(notification.userId, notification);
-    return notification;
+    return this.notificationsService.create(body);
   }
 
   @Patch(':id/read')

@@ -7,39 +7,22 @@ const DEMO_USER_ID = "demo-user";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3001";
 
-type NotificationType = "info" | "success" | "warning" | "error";
-
 type Notification = {
   id: string;
   userId: string;
   message: string;
-  type: NotificationType;
   read: boolean;
   createdAt: string;
 };
 
 type SocketStatus = "connecting" | "connected" | "disconnected";
 
-const SAMPLE_MESSAGES: { type: NotificationType; message: string }[] = [
-  { type: "info", message: "گزارش روزانه آماده است." },
-  { type: "success", message: "پرداخت با موفقیت ثبت شد." },
-  { type: "warning", message: "ظرفیت دیسک به ۸۰٪ رسیده." },
-  { type: "error", message: "همگام‌سازی با سرور ناموفق بود." },
+const SAMPLE_MESSAGES = [
+  "گزارش روزانه آماده است.",
+  "پرداخت با موفقیت ثبت شد.",
+  "ظرفیت دیسک به ۸۰٪ رسیده.",
+  "همگام‌سازی با سرور ناموفق بود.",
 ];
-
-const TYPE_LABEL: Record<NotificationType, string> = {
-  info: "اطلاع",
-  success: "موفق",
-  warning: "هشدار",
-  error: "خطا",
-};
-
-const TYPE_CLASS: Record<NotificationType, string> = {
-  info: "bg-sky-100 text-sky-800",
-  success: "bg-emerald-100 text-emerald-800",
-  warning: "bg-amber-100 text-amber-900",
-  error: "bg-rose-100 text-rose-800",
-};
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("fa-IR", {
@@ -90,7 +73,6 @@ function prependUnique(
 export function NotificationsPanel() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [socketStatus, setSocketStatus] = useState<SocketStatus>("connecting");
-  const [pushCount, setPushCount] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,11 +103,11 @@ export function NotificationsPanel() {
 
     const socket: Socket = io(API_BASE, {
       transports: ["websocket"],
+      query: { userId: DEMO_USER_ID },
     });
 
     socket.on("connect", () => {
       setSocketStatus("connected");
-      socket.emit("join", { userId: DEMO_USER_ID });
     });
     socket.on("disconnect", () => {
       setSocketStatus("disconnected");
@@ -133,9 +115,8 @@ export function NotificationsPanel() {
     socket.on("connect_error", () => {
       setSocketStatus("disconnected");
     });
-    socket.on("notification", (incoming: Notification) => {
+    socket.on("newNotification", (incoming: Notification) => {
       setNotifications((current) => prependUnique(current, incoming));
-      setPushCount((count) => count + 1);
     });
 
     return () => {
@@ -146,7 +127,7 @@ export function NotificationsPanel() {
 
   async function sendTestNotification() {
     setSending(true);
-    const sample =
+    const message =
       SAMPLE_MESSAGES[Math.floor(Math.random() * SAMPLE_MESSAGES.length)];
 
     try {
@@ -155,8 +136,7 @@ export function NotificationsPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: DEMO_USER_ID,
-          message: sample.message,
-          type: sample.type,
+          message,
         }),
       });
       if (!response.ok) {
@@ -190,24 +170,31 @@ export function NotificationsPanel() {
 
   const statusLabel =
     socketStatus === "connected"
-      ? "WebSocket وصل است"
+      ? "آنلاین — در Map سرور ثبت شده"
       : socketStatus === "connecting"
-        ? "در حال اتصال WebSocket…"
-        : "WebSocket قطع است";
+        ? "در حال اتصال…"
+        : "آفلاین";
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-10">
       <header className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <p className="text-sm font-medium text-violet-700">
-            مرحله ۳ — Real-time با WebSocket
+            Real-time — فقط به کاربر آنلاین
           </p>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-            سیستم اعلان ساده
+            سیستم اعلان
           </h1>
           <p className="text-sm leading-7 text-zinc-600">
-            Polling حذف شد. یک GET اول لیست را می‌آورد؛ بعد از آن NestJS از طریق
-            Gateway هر اعلان جدید را فوری Push می‌کند.
+            یک GET اول اعلان‌های قبلی را می‌آورد. اتصال با{" "}
+            <code className="rounded bg-zinc-100 px-1 text-xs">
+              query.userId
+            </code>{" "}
+            در Map سرور ثبت می‌شود. اعلان جدید فقط اگر آنلاین باشی با رویداد{" "}
+            <code className="rounded bg-zinc-100 px-1 text-xs">
+              newNotification
+            </code>{" "}
+            می‌رسد — نه Broadcast به همه.
           </p>
         </div>
         <BellBadge unread={unreadCount} />
@@ -239,7 +226,7 @@ export function NotificationsPanel() {
             {statusLabel}
           </span>
           {" · "}
-          push دریافتی: {pushCount} · نخونده: {unreadCount}
+          نخونده: {unreadCount}
         </p>
         {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       </section>
@@ -250,8 +237,7 @@ export function NotificationsPanel() {
         </h2>
         {notifications.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-sm text-zinc-500">
-            هنوز اعلانی نیست. دکمه را بزن؛ باید بدون انتظار ۳ ثانیه‌ای از
-            WebSocket برسد.
+            هنوز اعلانی نیست. دکمه را بزن؛ اگر آنلاین باشی بدون رفرش ظاهر می‌شود.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -267,20 +253,13 @@ export function NotificationsPanel() {
                   }`}
                 >
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TYPE_CLASS[item.type]}`}
-                      >
-                        {TYPE_LABEL[item.type]}
+                    {!item.read ? (
+                      <span className="text-xs font-medium text-violet-700">
+                        نخونده
                       </span>
-                      {!item.read ? (
-                        <span className="text-xs font-medium text-violet-700">
-                          نخونده
-                        </span>
-                      ) : (
-                        <span className="text-xs text-zinc-400">خوانده‌شده</span>
-                      )}
-                    </div>
+                    ) : (
+                      <span className="text-xs text-zinc-400">خوانده‌شده</span>
+                    )}
                     <time
                       className="text-xs text-zinc-400"
                       dateTime={item.createdAt}
